@@ -85,6 +85,17 @@ async function run() {
       const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "1h" });
       res.send({ result, token });
     });
+
+    app.get('/product', verifyJWT, async(req, res) =>{
+      const products = await productsCollection.find().toArray();
+      res.send(products);
+    })
+
+    app.post('/product', verifyJWT, async (req, res) => {
+      const product = req.body;
+      const result = await productsCollection.insertOne(product);
+      res.send(result);
+    });
   } finally {
   }
 }
