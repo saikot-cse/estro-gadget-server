@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 const app = express();
+const jwt = require('jsonwebtoken');
 const port = process.env.PORT || 6060;
 
 //middleware
@@ -17,10 +18,15 @@ async function run() {
   try {
     await client.connect();
     const productsCollection = client.db("estroGadget").collection("products");
+    const reviewsCollection = client.db("estroGadget").collection("reviews");
 
     app.get("/products",async(req,res)=>{
       const products = await productsCollection.find({}).toArray();
       res.send(products);
+    })
+    app.get("/reviews",async(req,res)=>{
+      const reviews = await reviewsCollection.find({}).toArray();
+      res.send(reviews);
     })
     
   } finally {
