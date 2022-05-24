@@ -34,6 +34,7 @@ async function run() {
     const productsCollection = client.db("estroGadget").collection("products");
     const reviewsCollection = client.db("estroGadget").collection("reviews");
     const userCollection = client.db("estroGadget").collection("user");
+    const blogsCollection = client.db("estroGadget").collection("blogs");
 
     app.get("/products",async(req,res)=>{
       const products = await productsCollection.find({}).toArray();
@@ -90,12 +91,28 @@ async function run() {
       const products = await productsCollection.find().toArray();
       res.send(products);
     })
+    app.get('/blogs', async(req, res) =>{
+      const blogs = await blogsCollection.find().toArray();
+      res.send(blogs);
+    })
 
     app.post('/product', verifyJWT, async (req, res) => {
       const product = req.body;
       const result = await productsCollection.insertOne(product);
       res.send(result);
     });
+    app.post('/reviews', verifyJWT, async (req, res) => {
+      const reviews = req.body;
+      const result = await reviewsCollection.insertOne(reviews);
+      res.send(result);
+    });
+
+    app.delete('/user/:email', verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      const filter = {email: email};
+      const result = await userCollection.deleteOne(filter);
+      res.send(result);
+    })
   } finally {
   }
 }
