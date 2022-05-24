@@ -4,6 +4,7 @@ const cors = require("cors");
 require("dotenv").config();
 const app = express();
 const jwt = require("jsonwebtoken");
+const stripe = require('stripe')(process.env.SECRET_KEY);
 const port = process.env.PORT || 6060;
 
 //middleware
@@ -37,6 +38,7 @@ async function run() {
     const blogsCollection = client.db("estroGadget").collection("blogs");
     const orderCollection = client.db("estroGadget").collection("orders");
     const profileUpdate = client.db("estroGadget").collection("profile");
+    const paymentCollection = client.db("estroGadget").collection("payment");
 
     // const verifyAdmin = async (req, res, next) => {
     //   const requester = req.decoded.email;
@@ -53,13 +55,18 @@ async function run() {
       const products = await productsCollection.find({}).toArray();
       res.send(products);
     });
-    app.get("/products/:_id", async (req, res) => {
+    app.get("/order/:_id", async (req, res) => {
       const id = req.params._id;
       const query = { _id: ObjectId(id) };
-      console.log(id);
-      const result = await productsCollection.findOne(query);
+      const result = await orderCollection.findOne(query);
       res.send(result);
     });
+    app.get('/products/:id', async(req, res) =>{
+      const id = req.params.id;
+      const query = {"_id": ObjectId(id)};
+      const products = await productsCollection.findOne(query);
+      res.send(products);
+    })
     app.get("/reviews", async (req, res) => {
       const reviews = await reviewsCollection.find({}).toArray();
       res.send(reviews);
@@ -119,9 +126,18 @@ async function run() {
       const query = { userEmail: email };
       const order = await orderCollection.find(query).toArray();
       res.send(order);
-      console.log(email, order);
     });
-
+    app.post('/create-payment-intent', verifyJWT, async(req, res) =>{
+      const service = req.body;
+      const price = service.price;
+      const amount = price*100;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount : amount,
+        currency: 'usd',
+        payment_method_types:['card']
+      });
+      res.send({clientSecret: paymentIntent.client_secret})
+    });
     app.post("/product", verifyJWT, async (req, res) => {
       const product = req.body;
       const result = await productsCollection.insertOne(product);
@@ -137,7 +153,21 @@ async function run() {
       const result = await reviewsCollection.insertOne(reviews);
       res.send(result);
     });
+    app.patch('/order/:id', verifyJWT, async(req, res) =>{
+      const id  = req.params.id;
+      const payment = req.body;
+      const filter = {_id: ObjectId(id)};
+      const updatedDoc = {
+        $set: {
+          paid: true,
+          transactionId: payment.transactionId
+        }
+      }
 
+      const result = await paymentCollection.insertOne(payment);
+      const updatedBooking = await orderCollection.updateOne(filter, updatedDoc);
+      res.send(updatedBooking);
+    })
     app.post("/profile", async (req, res) => {
       const profile = req.body;
       const result = await profileUpdate.insertOne(profile);
