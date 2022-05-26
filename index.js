@@ -39,27 +39,41 @@ async function run() {
     const orderCollection = client.db("estroGadget").collection("orders");
     const paymentCollection = client.db("estroGadget").collection("payment");
 
-    // const verifyAdmin = async (req, res, next) => {
-    //   const requester = req.decoded.email;
-    //   const requesterAccount = await userCollection.findOne({ email: requester });
-    //   if (requesterAccount.role === 'admin') {
-    //     next();
-    //   }
-    //   else {
-    //     res.status(403).send({ message: 'forbidden' });
-    //   }
-    // }
+    const verifyAdmin = async (req, res, next) => {
+      const requester = req.decoded.email;
+      const requesterAccount = await userCollection.findOne({ email: requester });
+      if (requesterAccount.role === 'admin') {
+        next();
+      }
+      else {
+        res.status(403).send({ message: 'forbidden' });
+      }
+    }
 
     app.get("/products", async (req, res) => {
-      const products = await productsCollection.find({}).toArray();
-      res.send(products);
+      // const products = await productsCollection.find({}).toArray();
+      // res.send(products);
+      const id = req.query.id;
+      if (id !== undefined) {
+        const id = req.query.id;
+        const cursor = productsCollection.find({ _id: ObjectId(id) });
+        const products = await cursor.toArray();
+        res.send(products);
+      } else {
+        const query = {};
+        const cursor = productsCollection.find(query);
+        const products = await cursor.toArray();
+        res.send(products);
+      }
     });
+    
     app.get('/products/:id', async(req, res) =>{
       const id = req.params.id;
       const query = {"_id": ObjectId(id)};
       const products = await productsCollection.findOne(query);
       res.send(products);
     })
+
     app.get("/reviews", async (req, res) => {
       const reviews = await reviewsCollection.find({}).toArray();
       res.send(reviews);
@@ -116,6 +130,44 @@ async function run() {
       const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "1h" });
       res.send({ result, token });
     });
+    app.put("/products", async (req, res) => {
+      const id = req.query.id;
+      const updatedProduct = req.body;
+      console.log(updatedProduct, id);
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          price: updatedProduct.price,
+          availableQuantity: updatedProduct.availableQuantity,
+          minOrderQuantity: updatedProduct.minOrderQuantity,
+          image: updatedProduct.image,
+        },
+      };
+      const result = await productsCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
+      res.send(result);
+    });
+    app.put("/order", async (req, res) => {
+      const _id = req.query.id;
+      const updatedProduct = req.body;
+      const filter = { _id: ObjectId(_id) };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          status: updatedProduct.status,
+        },
+      };
+      const result = await orderCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
+      res.send(result);
+    });
 
     app.get("/product", verifyJWT, async (req, res) => {
       const products = await productsCollection.find().toArray();
@@ -134,7 +186,6 @@ async function run() {
     app.get("/order", async (req, res) => {
       const email = req.query.email;
       if (email !== undefined) {
-        console.log('GG')
           const query = { userEmail: email };
           const cursor = orderCollection.find(query);
           const products = await cursor.toArray();
@@ -188,23 +239,6 @@ async function run() {
       const updatedBooking = await orderCollection.updateOne(filter, updatedDoc);
       res.send(updatedBooking);
     })
-    // app.post("/profile", async (req, res) => {
-    //   const profile = req.body;
-    //   const result = await profileUpdate.insertOne(profile);
-    //   res.send({ success: true, result });
-    // });
-    // app.put("/profile/:email", async (req, res) => {
-    //   const email = req.params.email;
-    //   const user = req.body;
-    //   const filter = { email: email };
-    //   const options = { upsert: true };
-    //   const updateDoc = {
-    //     $set: user,
-    //   };
-    //   const result = await userCollection.updateOne(filter, updateDoc, options);
-    //   const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "1h" });
-    //   res.send({ result, token });
-    // });
 
     app.delete("/user/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
@@ -218,12 +252,12 @@ async function run() {
       const result = await productsCollection.deleteOne(query);
       res.send(result);
     });
-    // app.delete("/order/:id", async (req, res) => {
-    //   const id = req.params.id;
-    //   const query = { "_id": ObjectId(id)};
-    //   const result = await orderCollection.deleteOne(query);
-    //   res.send(result);
-    // });
+    app.delete("/order/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { "_id": ObjectId(id)};
+      const result = await orderCollection.deleteOne(query);
+      res.send(result);
+    });
   } finally {
   }
 }
