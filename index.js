@@ -11,7 +11,8 @@ const port = process.env.PORT || 6060;
 app.use(cors());
 app.use(express.json());
 
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.hvdeh.mongodb.net/?retryWrites=true&w=majority`;
+// const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.hvdeh.mongodb.net/?retryWrites=true&w=majority`;
+const uri = `mongodb+srv://estroGadget:vd6mK5K1XPROJMBB@cluster0.hvdeh.mongodb.net/?retryWrites=true&w=majority`;
 // const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
 const client = new MongoClient(uri,{ useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 }, { connectTimeoutMS: 30000 }, { keepAlive: 1 });
@@ -22,7 +23,8 @@ function verifyJWT(req, res, next) {
     return res.status(401).send({ message: "UnAuthorized access" });
   }
   const token = authHeader.split(" ")[1];
-  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
+  // jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
+  jwt.verify(token, "38a03654ea8f4e8a72bb4a04e0a3719ccc8c93478c4bdab5c00fabba5583a591eb9614de1564ca719a4ac1ab7421915b79c0e4dde0c56b7743da9f77564ef938", function (err, decoded) {
     if (err) {
       return res.status(403).send({ message: "Forbidden access" });
     }
